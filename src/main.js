@@ -3,10 +3,14 @@ import "izitoast/dist/css/iziToast.min.css";
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
 
+import { getImgByQuery } from './js/pixabay-api';
+import { renderTicker } from './js/render-functions';
 
 const formElem = document.querySelector(".form");
 const galleryElem = document.querySelector(".gallery");
 const loaderElem = document.querySelector(".loader");
+
+const lightbox = new SimpleLightbox(".gallery-link", { captionsData: "alt", captionDelay: 250 });
 
 formElem.addEventListener("submit", onFormSubmit);
 
@@ -25,7 +29,8 @@ function onFormSubmit(event) {
         getImgByQuery(userQuery).then(data => {
             loaderElem.classList.add("visually-hidden");
             if (data.hits.length > 0) {
-                renderTicker(data);
+                galleryElem.innerHTML = renderTicker(data);
+                lightbox.refresh();
             } else {
                 iziToast.warning({
                     title: "",
@@ -34,58 +39,12 @@ function onFormSubmit(event) {
                 });
             }
         }).catch(error => {
-            console.log(error);
+            iziToast.warning({
+                title: "",
+                message: error,
+                position: 'topCenter',
+            });
         });
         event.target.reset();
     }
-    
 }
-
-function getImgByQuery(userQuery) {
-    const BASE_URL = "https://pixabay.com/api/";
-    const KEY = "?key=42441384-ae09b834f94a4016fb8b80a97";
-    const Q = `&q=${userQuery}`;
-    const IMAGE_TYPE = "&image_type=photo";
-    const ORIENTATION = "&orientation=horizontal";
-    const SAFESEARCH = "&safesearch=true";
-    const url = BASE_URL + KEY + Q + IMAGE_TYPE + ORIENTATION + SAFESEARCH;
-
-    const options = {
-        headers: {
-        },
-    };
-    return fetch(url, options).then(res => {
-        if (res.ok) {
-            return res.json()
-        } else {
-            throw new Error(res.status);
-        }
-    });
-}
-
-function imgTemplate(img) {
-    return `<li class="gallery-item">
-        <a class="gallery-link"
-            href="${img.largeImageURL}">
-            <img class="gallery-image"
-                src="${img.webformatURL}"
-                alt="${img.tags}" />
-        </a>
-        <div class = "gallery-item-info">
-                <ul>Likes<li>${img.likes}</li></ul>
-                <ul>Views<li>${img.views}</li></ul>
-                <ul>Comments<li>${img.comments}</li></ul>
-                <ul>Downloads<li>${img.downloads}</li></ul>
-        </div>
-    </li>`
-}
-
-function renderTicker(obj) {
-    const markup = obj.hits.map(imgTemplate).join("");
-    galleryElem.innerHTML = markup;
-    lightbox.refresh();
-}
-
-const lightbox = new SimpleLightbox(".gallery-link", { captionsData: "alt", captionDelay: 250 });
-
-
